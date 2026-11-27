@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { setTimeout as sleep } from 'node:timers/promises';
-import { formatMessage } from '../src/format.mjs';
+import { formatMessage, formatQuote } from '../src/format.mjs';
 
 const cli = fileURLToPath(new URL('../src/cli.mjs', import.meta.url));
 const fake = fileURLToPath(new URL('./fixtures/fake-claude.mjs', import.meta.url));
@@ -26,7 +26,11 @@ function hook(cmd, input, extraEnv = {}) {
   return { ...r, ms: Date.now() - t };
 }
 const prompt = (p, s = 's1') => ({ hook_event_name: 'UserPromptSubmit', session_id: s, prompt: p, cwd: '/proj', transcript_path: '' });
-const stop = (s = 's1') => ({ hook_event_name: 'Stop', session_id: s, stop_hook_active: false });
+// What the next prompt's hook hands Claude to quote, or '' when nothing is shown.
+const next = (s = 's1', env) => {
+  const r = hook('on-prompt', prompt('yes', s), env);
+  return r.stdout ? JSON.parse(r.stdout).hookSpecificOutput.additionalContext : '';
+};
 const logPath = () => join(home, 'scores.jsonl');
 async function waitForLog(n = 1) {
   for (let i = 0; i < 100; i++) {
@@ -44,7 +48,7 @@ test('on-prompt returns fast, prints nothing on the first prompt', () => {
   assert.ok(r.ms < 1000, `took ${r.ms} ms`);
 });
 
-test('grade worker logs and leaves pending; on-stop shows it once', async () => {
+test('grade worker logs and leaves pending; next prompt shows it once', async () => {
   hook('on-prompt', prompt(TASK));
   await waitForLog();
   const entry = JSON.parse(readFileSync(logPath(), 'utf8'));
@@ -55,13 +59,14 @@ test('grade worker logs and leaves pending; on-stop shows it once', async () => 
   assert.equal(entry.rubric_version, 1);
   assert.equal(entry.overall, 6.3);
   assert.ok(!Number.isNaN(Date.parse(entry.ts)));
-  const r = hook('on-stop', stop());
+  const r = hook('on-prompt', prompt('yes'));
   assert.equal(r.status, 0);
   const out = JSON.parse(r.stdout);
-  assert.match(out.systemMessage, /Prompt score 6\.3\/10/);
+  assert.equal(out.hookSpecificOutput.hookEventName, 'UserPromptSubmit');
+  assert.match(out.hookSpecificOutput.additionalContext, /> \*\*Last prompt: 6\.3\/10\*\*/);
   assert.equal(out.decision, undefined);
-  assert.equal(out.hookSpecificOutput, undefined);
-  assert.equal(hook('on-stop', stop()).stdout, '');
+  assert.equal(out.systemMessage, undefined);
+  assert.equal(next(), '');
   assert.deepEqual(jobs(), []);
 });
 
@@ -71,17 +76,10 @@ test('PROMPT_COACH_MODEL is passed through and logged', async () => {
   assert.equal(JSON.parse(readFileSync(logPath(), 'utf8')).model, 'sonnet');
 });
 
-test('next on-prompt shows an unshown grade', async () => {
-  hook('on-prompt', prompt(TASK));
-  await waitForLog();
-  const r = hook('on-prompt', prompt('yes'));
-  assert.match(JSON.parse(r.stdout).systemMessage, /Prompt score 6\.3\/10/);
-});
-
 test('grades from another session are not shown here', async () => {
   hook('on-prompt', prompt(TASK, 'other'));
   await waitForLog();
-  assert.equal(hook('on-stop', stop('s1')).stdout, '');
+  assert.equal(next('s1'), '');
 });
 
 test('skip prompt starts no worker', async () => {
@@ -96,7 +94,7 @@ test('grader skip:true logs nothing and shows nothing', async () => {
   for (let i = 0; i < 40 && jobs().length; i++) await sleep(50);
   await sleep(200);
   assert.equal(existsSync(logPath()), false);
-  assert.equal(hook('on-stop', stop()).stdout, '');
+  assert.equal(next(), '');
 });
 
 test('grader failure logs nothing and leaves no job behind', async () => {
@@ -107,21 +105,18 @@ test('grader failure logs nothing and leaves no job behind', async () => {
   assert.deepEqual(jobs(), []);
 });
 
-test('guard env: both hooks print nothing and start nothing', async () => {
+test('guard env: hook prints nothing and starts nothing', async () => {
   const g = { PROMPT_COACH_GRADING: '1' };
   assert.equal(hook('on-prompt', prompt(TASK), g).stdout, '');
-  assert.equal(hook('on-stop', stop(), g).stdout, '');
   await sleep(300);
   assert.deepEqual(jobs(), []);
   assert.equal(existsSync(logPath()), false);
 });
 
 test('garbage stdin -> exit 0, no output', () => {
-  for (const cmd of ['on-prompt', 'on-stop']) {
-    const r = hook(cmd, 'not json{');
-    assert.equal(r.status, 0, cmd);
-    assert.equal(r.stdout, '', cmd);
-  }
+  const r = hook('on-prompt', 'not json{');
+  assert.equal(r.status, 0);
+  assert.equal(r.stdout, '');
 });
 
 test('unwritable data dir -> exit 0, no output', () => {
@@ -160,5 +155,14 @@ test('final review: pending file holds no prompt text', async () => {
   await waitForLog();
   const [file] = readdirSync(join(home, 'pending'));
   assert.equal(JSON.parse(readFileSync(join(home, 'pending', file), 'utf8')).prompt, undefined);
-  assert.match(JSON.parse(hook('on-stop', stop()).stdout).systemMessage, /Prompt score 6\.3/);
+  assert.match(next(), /Last prompt: 6\.3/);
+});
+
+test('formatQuote: quote block with score and one-line gap', () => {
+  const e = { ...entry('ok'), missing: [{ category: 'no-files', note: 'name\n the  file' }] };
+  assert.equal(formatQuote(e), [
+    '> **Last prompt: 6.3/10** · Clarity 8 · Context 5 · Specificity 6 · Done criteria 6',
+    '> **Better:** name the file',
+  ].join('\n'));
+  assert.equal(formatQuote({ ...e, missing: [] }).split('\n').length, 1);
 });

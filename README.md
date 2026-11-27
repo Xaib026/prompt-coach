@@ -3,15 +3,11 @@
 **Get better at prompting Claude Code, one prompt at a time.**
 
 prompt-coach is a Claude Code plugin. It quietly grades every prompt you give Claude Code,
-and when Claude finishes replying you see where the prompt was weak and a stronger version
-to use next time. Over time, `/prompt-report` shows your patterns: your weakest area,
+and Claude opens its next reply with that grade and the biggest gap to fix. Over time, `/prompt-report` shows your patterns: your weakest area,
 whether you're improving, and the gaps you keep repeating.
 
-```
-Prompt score 1.8/10 · clarity 3 · context 2 · specificity 1 · done-criteria 1
-Biggest gap (no-files): Name the login page's file or route (e.g. src/pages/Login.tsx or /login).
-Try: "In <path/to/login page>, improve the login page. Current problems: <list what is wrong>. Keep the existing auth flow…"
-```
+> **Last prompt: 1.8/10** · Clarity 3 · Context 2 · Specificity 1 · Done criteria 1
+> **Better:** Name the login page's file or route (e.g. src/pages/Login.tsx or /login).
 
 <!-- screenshot: add docs/screenshot.png here -->
 
@@ -41,8 +37,10 @@ your existing Claude Code login.
    - **Done-criteria:** does it say what "done" or "good" looks like?
 
    The overall score is the average of the four.
-3. **You see the result after Claude's reply.** If grading isn't finished yet, it shows
-   with your next prompt instead.
+3. **Claude quotes the grade at the top of its next reply.** When you send your next
+   prompt, the hook hands the finished grade to Claude, which opens its reply with it. So
+   each grade shows one turn late, and the last prompt of a session only shows in
+   `/prompt-report last`, which also has the full rewrite.
 4. **`/prompt-report`** turns your history into coaching. Use `/prompt-report 7d` or
    `30d` to limit the window, or `/prompt-report last` to see the newest grade again.
 

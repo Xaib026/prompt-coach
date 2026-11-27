@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 // Entry point for the hooks and the background grader.
-//   on-prompt     UserPromptSubmit hook: show any unshown grade, start grading, return at once
-//   on-stop       Stop hook: show this session's grade if it's ready
+//   on-prompt     UserPromptSubmit hook: have Claude quote the last unshown grade, start grading, return at once
 //   grade <job>   background worker started by on-prompt
 //   report [win]  numbers for /prompt-report (JSON), or `last` for the newest grade
 // Hooks must never get in the user's way: every hook path exits 0, and errors are swallowed.
@@ -13,7 +12,7 @@ import { appendEntry, writePending, takePending, writeJob, readJob, readEntries 
 import { summarize, parseWindow } from './report.mjs';
 import { shouldSkip, capPrompt, lastAssistantText } from './input.mjs';
 import { runGrader } from './grader.mjs';
-import { formatMessage } from './format.mjs';
+import { formatMessage, replyContext } from './format.mjs';
 
 const model = () => process.env.PROMPT_COACH_MODEL || 'haiku';
 
@@ -24,9 +23,14 @@ function readHookInput() {
   } catch { return null; }
 }
 
+// Hook messages land in a collapsed notice, so Claude is asked to quote the grade in its reply instead.
 function showPending(sessionId) {
   const entry = takePending(sessionId);
-  if (entry) process.stdout.write(JSON.stringify({ systemMessage: formatMessage(entry) }));
+  if (entry) {
+    process.stdout.write(JSON.stringify({
+      hookSpecificOutput: { hookEventName: 'UserPromptSubmit', additionalContext: replyContext(entry) },
+    }));
+  }
 }
 
 function onPrompt() {
@@ -38,11 +42,6 @@ function onPrompt() {
     session_id: input.session_id, cwd: input.cwd, prompt: capPrompt(input.prompt), transcript_path: input.transcript_path,
   });
   spawn(process.execPath, [fileURLToPath(import.meta.url), 'grade', job], { detached: true, stdio: 'ignore' }).unref();
-}
-
-function onStop() {
-  const input = readHookInput();
-  if (input) showPending(input.session_id);
 }
 
 async function grade(jobPath) {
@@ -84,7 +83,6 @@ async function main([cmd, arg]) {
   if (process.env.PROMPT_COACH_GRADING) return;
   try {
     if (cmd === 'on-prompt') return onPrompt();
-    if (cmd === 'on-stop') return onStop();
     if (cmd === 'grade') return await grade(arg);
   } catch { /* never break the user's session */ }
 }
