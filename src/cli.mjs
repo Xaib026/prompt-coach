@@ -47,7 +47,9 @@ function onPrompt() {
 async function grade(jobPath) {
   const job = readJob(jobPath);
   if (!job) return;
-  const result = await runGrader({ prompt: job.prompt, previousReply: lastAssistantText(job.transcript_path), model: model() });
+  const result = await runGrader({
+    prompt: job.prompt, previousReply: lastAssistantText(job.transcript_path), projectDir: job.cwd, model: model(),
+  });
   if (!result || result.skip) return;
   const entry = {
     ts: new Date().toISOString(), rubric_version: RUBRIC_VERSION, model: model(),

@@ -56,7 +56,7 @@ test('grade worker logs and leaves pending; next prompt shows it once', async ()
   assert.equal(entry.session_id, 's1');
   assert.equal(entry.cwd, '/proj');
   assert.equal(entry.model, 'haiku');
-  assert.equal(entry.rubric_version, 1);
+  assert.equal(entry.rubric_version, 2);
   assert.equal(entry.overall, 6.3);
   assert.ok(!Number.isNaN(Date.parse(entry.ts)));
   const r = hook('on-prompt', prompt('yes'));

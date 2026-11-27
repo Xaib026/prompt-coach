@@ -60,6 +60,13 @@ test('input labels both parts, and says when there is no previous reply', () => 
   assert.match(buildGraderInput('do X', 'ok'), /\nok\n/);
 });
 
+test('input names only the project folder, not the full path', () => {
+  const input = buildGraderInput('do X', '', '/Users/someone/code/prompt-coach');
+  assert.match(input, /^PROJECT FOLDER[^\n]*: prompt-coach\n/);
+  assert.doesNotMatch(input, /someone/);
+  assert.match(buildGraderInput('do X', ''), /^PROJECT FOLDER[^\n]*: \(unknown\)/);
+});
+
 test('final review: uses the running Claude (CLAUDE_CODE_EXECPATH) when no bin is given', async () => {
   const saved = { ...process.env };
   delete process.env.PROMPT_COACH_CLAUDE_BIN;

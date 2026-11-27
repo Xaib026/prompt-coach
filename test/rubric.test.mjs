@@ -34,5 +34,5 @@ test('schema enum matches GAP_CATEGORIES', () =>
 
 test('schema requires every criterion', () => {
   for (const c of CRITERIA) assert.ok(GRADE_SCHEMA.required.includes(c), c);
-  assert.equal(RUBRIC_VERSION, 1);
+  assert.equal(RUBRIC_VERSION, 2);
 });

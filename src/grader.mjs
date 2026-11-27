@@ -2,7 +2,7 @@
 import { spawn } from 'node:child_process';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 import { GRADE_SCHEMA, SYSTEM_PROMPT, validateGrade } from './rubric.mjs';
 
 // No tools, no MCP servers, no user plugins/hooks, nothing saved: fast, cheap, unbiased.
@@ -13,11 +13,13 @@ export const graderArgs = (model) => [
   '--no-session-persistence', '--system-prompt', SYSTEM_PROMPT,
 ];
 
-export const buildGraderInput = (prompt, previousReply) =>
+// Only the folder name: the agent can see the project, the grader just needs to know which one.
+export const buildGraderInput = (prompt, previousReply, cwd) =>
+  `PROJECT FOLDER (the agent is working inside it): ${cwd ? basename(cwd) : '(unknown)'}\n\n` +
   `PREVIOUS REPLY (context only):\n${previousReply || '(none)'}\n\nPROMPT TO GRADE:\n${prompt}`;
 
 /** Resolves to a Grade, { skip: true }, or null on any failure. Never rejects. */
-export function runGrader({ prompt, previousReply, model, timeoutMs = 60_000,
+export function runGrader({ prompt, previousReply, projectDir, model, timeoutMs = 60_000,
   // CLAUDE_CODE_EXECPATH is the Claude Code that's running the hook; the desktop app's copy
   // usually isn't on PATH.
   bin = process.env.PROMPT_COACH_CLAUDE_BIN || process.env.CLAUDE_CODE_EXECPATH || 'claude' }) {
@@ -48,6 +50,6 @@ export function runGrader({ prompt, previousReply, model, timeoutMs = 60_000,
       try { finish(validateGrade(JSON.parse(out).structured_output)); } catch { finish(null); }
     });
     child.stdin.on('error', () => {}); // child may exit before reading; the exit code decides
-    child.stdin.end(buildGraderInput(prompt, previousReply));
+    child.stdin.end(buildGraderInput(prompt, previousReply, projectDir));
   });
 }

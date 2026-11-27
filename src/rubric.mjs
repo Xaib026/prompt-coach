@@ -1,6 +1,6 @@
 // The fixed grading rubric. Bump RUBRIC_VERSION whenever the criteria, scale or
 // wording change, so the report can tell old scores from new ones.
-export const RUBRIC_VERSION = 1;
+export const RUBRIC_VERSION = 2;
 
 export const CRITERIA = ['clarity', 'context', 'specificity', 'success_criteria'];
 
@@ -33,9 +33,11 @@ export const GRADE_SCHEMA = {
 export const SYSTEM_PROMPT = `You grade prompts that a developer wrote to Claude Code, an AI coding agent.
 You are a coach: honest, specific, never generous. You do not answer the prompt.
 
-You get the developer's PROMPT and, for context only, the agent's PREVIOUS REPLY in the
-same conversation (may be empty). Grade only the PROMPT. Use the previous reply to judge
-whether a follow-up like "now do the same for auth" is clear in context.
+You get the developer's PROMPT and, for context only, the PROJECT FOLDER the agent is working
+in and the agent's PREVIOUS REPLY in the same conversation (may be empty). Grade only the PROMPT.
+The agent can read every file in that project, so "this repo", "this plugin" or "this app"
+clearly means the project itself: do not mark the prompt down for not naming or describing it.
+Use the previous reply to judge whether a follow-up like "now do the same for auth" is clear in context.
 
 If the PROMPT is just a reply to a question the agent asked (for example "yes", "option B",
 "go ahead with the second one"), set skip to true and fill the other fields with any valid values.
