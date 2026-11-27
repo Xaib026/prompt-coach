@@ -1,7 +1,7 @@
 // Runs the grader: a separate, lean `claude -p` call that only scores the prompt.
 import { spawn } from 'node:child_process';
 import { mkdtempSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { homedir, tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
 import { GRADE_SCHEMA, SYSTEM_PROMPT, validateGrade } from './rubric.mjs';
 
@@ -14,8 +14,10 @@ export const graderArgs = (model) => [
 ];
 
 // Only the folder name: the agent can see the project, the grader just needs to know which one.
+// `/` and the home folder aren't projects, so "this plugin" from there stays vague.
+const projectName = (cwd) => (cwd && cwd !== homedir() && basename(cwd)) || '(unknown)';
 export const buildGraderInput = (prompt, previousReply, cwd) =>
-  `PROJECT FOLDER (the agent is working inside it): ${cwd ? basename(cwd) : '(unknown)'}\n\n` +
+  `PROJECT FOLDER (the agent is working inside it): ${projectName(cwd)}\n\n` +
   `PREVIOUS REPLY (context only):\n${previousReply || '(none)'}\n\nPROMPT TO GRADE:\n${prompt}`;
 
 /** Resolves to a Grade, { skip: true }, or null on any failure. Never rejects. */

@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { chmodSync, existsSync, mkdtempSync, symlinkSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { homedir, tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { graderArgs, buildGraderInput, runGrader } from '../src/grader.mjs';
@@ -65,6 +65,7 @@ test('input names only the project folder, not the full path', () => {
   assert.match(input, /^PROJECT FOLDER[^\n]*: prompt-coach\n/);
   assert.doesNotMatch(input, /someone/);
   assert.match(buildGraderInput('do X', ''), /^PROJECT FOLDER[^\n]*: \(unknown\)/);
+  for (const dir of ['/', homedir()]) assert.match(buildGraderInput('do X', '', dir), /^PROJECT FOLDER[^\n]*: \(unknown\)/);
 });
 
 test('final review: uses the running Claude (CLAUDE_CODE_EXECPATH) when no bin is given', async () => {

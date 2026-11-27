@@ -70,6 +70,12 @@ test('grade worker logs and leaves pending; next prompt shows it once', async ()
   assert.deepEqual(jobs(), []);
 });
 
+test('grader is told the project folder name', async () => {
+  hook('on-prompt', prompt(TASK), { FAKE_MODE: 'echo-env' });
+  await waitForLog();
+  assert.match(JSON.parse(readFileSync(logPath(), 'utf8')).rewrite, /PROJECT FOLDER[^\n]*: proj\n/);
+});
+
 test('PROMPT_COACH_MODEL is passed through and logged', async () => {
   hook('on-prompt', prompt(TASK), { PROMPT_COACH_MODEL: 'sonnet' });
   await waitForLog();

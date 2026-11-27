@@ -1,5 +1,5 @@
 // Turns the log into numbers. Claude writes the coaching from these; it never makes numbers up.
-import { CRITERIA } from './rubric.mjs';
+import { CRITERIA, RUBRIC_VERSION } from './rubric.mjs';
 
 const DAY = 86_400_000;
 const round1 = (n) => Math.round(n * 10) / 10;
@@ -18,7 +18,9 @@ export function summarize(entries, { days = null, now = new Date(), skipped = 0 
   const valid = entries.filter(isEntry);
   const age = (e) => now - Date.parse(e.ts);
   const list = days ? valid.filter((e) => age(e) <= days * DAY) : valid;
-  const overallIn = (from, to) => avg(list.filter((e) => age(e) > from * DAY && age(e) <= to * DAY).map((e) => e.overall));
+  // Trend compares weeks, so only grades from the current rubric: a rubric change isn't progress.
+  const current = list.filter((e) => e.rubric_version === RUBRIC_VERSION);
+  const overallIn = (from, to) => avg(current.filter((e) => age(e) > from * DAY && age(e) <= to * DAY).map((e) => e.overall));
   const last7 = overallIn(-Infinity, 7);
   const prev7 = overallIn(7, 14);
 

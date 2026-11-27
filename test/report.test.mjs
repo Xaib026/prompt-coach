@@ -6,11 +6,12 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { summarize, parseWindow } from '../src/report.mjs';
+import { RUBRIC_VERSION } from '../src/rubric.mjs';
 
 const now = new Date('2026-11-27T12:00:00Z');
 const daysAgo = (d) => new Date(now - d * 86_400_000).toISOString();
 const e = (d, [clarity, context, specificity, success_criteria], gaps = [], prompt = `p${d}`) => ({
-  ts: daysAgo(d), prompt, rewrite: `r${d}`, scores: { clarity, context, specificity, success_criteria },
+  ts: daysAgo(d), rubric_version: RUBRIC_VERSION, prompt, rewrite: `r${d}`, scores: { clarity, context, specificity, success_criteria },
   overall: Math.round(((clarity + context + specificity + success_criteria) / 4) * 10) / 10,
   missing: gaps.map((category) => ({ category, note: 'n' })),
 });
@@ -34,6 +35,13 @@ test('averages and gap counts', () => {
 test('trend: last 7 days vs previous 7', () => {
   const r = summarize(three, { now });
   assert.deepEqual(r.trend, { last7: 7, prev7: 5, delta: 2 });
+});
+
+test('trend ignores grades from an older rubric, averages keep them', () => {
+  const old = { ...e(10, [2, 2, 2, 2]), rubric_version: RUBRIC_VERSION - 1 };
+  const r = summarize([old, e(1, [6, 6, 6, 6])], { now });
+  assert.deepEqual(r.trend, { last7: 6, prev7: null, delta: null });
+  assert.equal(r.overall_avg, 4);
 });
 
 test('trend null when a week has no data', () => {
