@@ -1,7 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { chmodSync, existsSync } from 'node:fs';
-import { basename } from 'node:path';
+import { chmodSync, existsSync, mkdtempSync, symlinkSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { basename, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { graderArgs, buildGraderInput, runGrader } from '../src/grader.mjs';
 import { SYSTEM_PROMPT } from '../src/rubric.mjs';
@@ -57,4 +58,19 @@ test('args carry the lean flags, the model and the rubric', () => {
 test('input labels both parts, and says when there is no previous reply', () => {
   assert.match(buildGraderInput('do X', ''), /PREVIOUS REPLY[\s\S]*\(none\)[\s\S]*PROMPT TO GRADE:\ndo X$/);
   assert.match(buildGraderInput('do X', 'ok'), /\nok\n/);
+});
+
+test('final review: uses the running Claude (CLAUDE_CODE_EXECPATH) when no bin is given', async () => {
+  const saved = { ...process.env };
+  delete process.env.PROMPT_COACH_CLAUDE_BIN;
+  process.env.CLAUDE_CODE_EXECPATH = bin;
+  // A PATH with only `node` on it (the fake needs it), so a `claude` lookup on PATH would fail.
+  const onlyNode = mkdtempSync(join(tmpdir(), 'pc-path-'));
+  symlinkSync(process.execPath, join(onlyNode, 'node'));
+  process.env.PATH = onlyNode;
+  process.env.FAKE_MODE = 'ok';
+  try {
+    const g = await runGrader({ prompt: 'fix the bug in auth.ts', previousReply: '', model: 'haiku', bin: undefined });
+    assert.equal(g?.overall, 6.3);
+  } finally { process.env = saved; }
 });

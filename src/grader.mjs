@@ -18,7 +18,9 @@ export const buildGraderInput = (prompt, previousReply) =>
 
 /** Resolves to a Grade, { skip: true }, or null on any failure. Never rejects. */
 export function runGrader({ prompt, previousReply, model, timeoutMs = 60_000,
-  bin = process.env.PROMPT_COACH_CLAUDE_BIN || 'claude' }) {
+  // CLAUDE_CODE_EXECPATH is the Claude Code that's running the hook; the desktop app's copy
+  // usually isn't on PATH.
+  bin = process.env.PROMPT_COACH_CLAUDE_BIN || process.env.CLAUDE_CODE_EXECPATH || 'claude' }) {
   // An empty folder, so no project CLAUDE.md is picked up.
   const cwd = mkdtempSync(join(tmpdir(), 'prompt-coach-'));
   return new Promise((resolve) => {

@@ -56,7 +56,9 @@ async function grade(jobPath) {
     scores: result.scores, overall: result.overall, missing: result.missing, rewrite: result.rewrite,
   };
   appendEntry(entry);
-  writePending(job.session_id, entry);
+  // Unshown pending files can linger, so keep the prompt text only in the log.
+  const { prompt, ...shown } = entry;
+  writePending(job.session_id, shown);
 }
 
 // Run by the user (through /prompt-report), not a hook, so it may fail loudly.

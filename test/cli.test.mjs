@@ -154,3 +154,11 @@ test('formatMessage cuts long rewrite to 300 chars with …', () => {
 test('formatMessage with no gaps omits the gap line', () => {
   assert.equal(formatMessage({ ...entry('ok'), missing: [] }).split('\n').length, 2);
 });
+
+test('final review: pending file holds no prompt text', async () => {
+  hook('on-prompt', prompt(TASK));
+  await waitForLog();
+  const [file] = readdirSync(join(home, 'pending'));
+  assert.equal(JSON.parse(readFileSync(join(home, 'pending', file), 'utf8')).prompt, undefined);
+  assert.match(JSON.parse(hook('on-stop', stop()).stdout).systemMessage, /Prompt score 6\.3/);
+});

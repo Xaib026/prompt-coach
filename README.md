@@ -66,11 +66,11 @@ On a Claude subscription, grading uses a small amount of your plan's usage.
 - Prompts are graded only through your own Claude Code login, the same service your prompts
   already go to.
 - Results, including the **text of your prompts**, are stored only on your machine, in
-  `~/.claude/prompt-coach/scores.jsonl`. The file is readable only by you (mode 600).
-- To clear your history:
+  `~/.claude/prompt-coach/`. Files there are readable only by you.
+- To clear everything:
 
   ```bash
-  rm ~/.claude/prompt-coach/scores.jsonl
+  rm -rf ~/.claude/prompt-coach
   ```
 
 If you paste secrets into prompts, they end up in that file too.
@@ -88,8 +88,15 @@ Settings are environment variables:
 
 - macOS and Linux.
 - Windows through WSL. Native Windows isn't supported.
-- Works in the Claude Code CLI, the desktop app's Code tab, and the IDE extensions.
+- Built for Claude Code: the CLI, the desktop app's Code tab, and the IDE extensions, all of
+  which run plugin hooks. Grading uses the same Claude Code that runs the hook. If that can't
+  be found, it falls back to `claude` on your `PATH`.
 - Doesn't work in the claude.ai Chat tab, which has no hooks.
+
+**Nothing showing up?** Run `/prompt-report last`. If it says nothing has been graded, check:
+- that `node --version` works;
+- that `PROMPT_COACH` isn't set to `off`;
+- that your prompt was long enough to be graded.
 
 ## Development
 

@@ -54,3 +54,10 @@ claude -p --model haiku --output-format json --json-schema '<schema>' \
   `node "<base dir>/../../src/cli.mjs" report`.
 - I didn't verify whether `${CLAUDE_PLUGIN_ROOT}` gets substituted inside a
   SKILL.md, so don't rely on it.
+
+## 6. Measured after the build (real hook → real grader)
+
+- `on-prompt` hook returned in **0.28 s**; the background grade landed **~8–9 s** later
+  (two runs, one via `CLAUDE_CODE_EXECPATH` with `claude` absent from PATH).
+- The desktop app exposes `CLAUDE_CODE_EXECPATH` (path of the running Claude Code binary) to
+  hooks; its bundled `claude` is not on PATH by default, so the grader prefers it.

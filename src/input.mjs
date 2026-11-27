@@ -11,7 +11,8 @@ export function shouldSkip(prompt, env = process.env) {
   const p = prompt.trim();
   if (p.startsWith('/')) return true;
   if (OPTION_PICK.test(p)) return true;
-  return p.split(/\s+/).filter(Boolean).length < 4;
+  // Both checks, so languages written without spaces (Chinese, Japanese) still get graded.
+  return p.split(/\s+/).filter(Boolean).length < 4 && p.length < 20;
 }
 
 export const capPrompt = (prompt, max = 8000) => prompt.slice(0, max);

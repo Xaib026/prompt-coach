@@ -59,3 +59,9 @@ test('lastAssistantText: no assistant turn -> ""', () => {
   writeFileSync(f, line({ type: 'user', message: { content: 'hi' } }));
   assert.equal(lastAssistantText(f), '');
 });
+
+test('final review: grades prompts in languages without spaces', () => {
+  assert.equal(shouldSkip('请修复auth.ts中的401错误，令牌有效时仍然失败，并添加测试', {}), false);
+  assert.ok(shouldSkip('はい', {}));
+  assert.ok(shouldSkip('ok thanks', {}));
+});
