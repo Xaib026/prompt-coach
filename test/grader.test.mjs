@@ -1,0 +1,60 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { chmodSync, readdirSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { fileURLToPath } from 'node:url';
+import { graderArgs, buildGraderInput, runGrader } from '../src/grader.mjs';
+import { SYSTEM_PROMPT } from '../src/rubric.mjs';
+
+const bin = fileURLToPath(new URL('./fixtures/fake-claude.mjs', import.meta.url));
+chmodSync(bin, 0o755);
+
+const run = (mode, opts = {}) => {
+  process.env.FAKE_MODE = mode;
+  return runGrader({ prompt: 'fix the bug in auth.ts', previousReply: 'Done earlier.', model: 'haiku', bin, ...opts });
+};
+
+test('ok -> Grade', async () => {
+  const g = await run('ok');
+  assert.equal(g.overall, 6.3);
+  assert.equal(g.skip, false);
+});
+
+test('skip -> { skip: true }', async () => assert.deepEqual(await run('skip'), { skip: true }));
+
+for (const m of ['bad-json', 'out-of-range', 'exit1'])
+  test(`${m} -> null`, async () => assert.equal(await run(m), null));
+
+test('missing binary -> null', async () => assert.equal(await run('ok', { bin: '/no/such/claude' }), null));
+
+test('hang -> null within timeout', async () => {
+  const t = Date.now();
+  assert.equal(await run('hang', { timeoutMs: 300 }), null);
+  assert.ok(Date.now() - t < 2000);
+});
+
+test('child gets guard env, a temp cwd that is removed, and the input on stdin', async () => {
+  const before = readdirSync(tmpdir()).filter((n) => n.startsWith('prompt-coach-')).length;
+  const g = await run('echo-env');
+  assert.match(g.rewrite, /GRADING=1/);
+  assert.doesNotMatch(g.rewrite, new RegExp(`cwd=${process.cwd()} `));
+  assert.match(g.rewrite, /fix the bug in auth\.ts/);
+  assert.match(g.rewrite, /Done earlier\./);
+  assert.equal(readdirSync(tmpdir()).filter((n) => n.startsWith('prompt-coach-')).length, before);
+});
+
+test('args carry the lean flags, the model and the rubric', () => {
+  const a = graderArgs('haiku');
+  for (const f of ['-p', '--strict-mcp-config', '--no-session-persistence']) assert.ok(a.includes(f), f);
+  assert.equal(a[a.indexOf('--model') + 1], 'haiku');
+  assert.equal(a[a.indexOf('--tools') + 1], '');
+  assert.equal(a[a.indexOf('--setting-sources') + 1], '');
+  assert.equal(a[a.indexOf('--output-format') + 1], 'json');
+  assert.equal(a[a.indexOf('--system-prompt') + 1], SYSTEM_PROMPT);
+  assert.equal(JSON.parse(a[a.indexOf('--json-schema') + 1]).type, 'object');
+});
+
+test('input labels both parts, and says when there is no previous reply', () => {
+  assert.match(buildGraderInput('do X', ''), /PREVIOUS REPLY[\s\S]*\(none\)[\s\S]*PROMPT TO GRADE:\ndo X$/);
+  assert.match(buildGraderInput('do X', 'ok'), /\nok\n/);
+});
