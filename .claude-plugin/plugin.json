@@ -1,0 +1,8 @@
+{
+  "name": "prompt-coach",
+  "version": "0.1.0",
+  "description": "Scores every prompt you give Claude Code, shows what to fix after each reply, and reports your patterns over time.",
+  "author": { "name": "xaib026 (Shoaib Hussain)" },
+  "license": "MIT",
+  "keywords": ["prompting", "prompt-engineering", "coaching", "hooks"]
+}

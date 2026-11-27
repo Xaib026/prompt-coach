@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { chmodSync, readdirSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { chmodSync, existsSync } from 'node:fs';
+import { basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { graderArgs, buildGraderInput, runGrader } from '../src/grader.mjs';
 import { SYSTEM_PROMPT } from '../src/rubric.mjs';
@@ -34,13 +34,13 @@ test('hang -> null within timeout', async () => {
 });
 
 test('child gets guard env, a temp cwd that is removed, and the input on stdin', async () => {
-  const before = readdirSync(tmpdir()).filter((n) => n.startsWith('prompt-coach-')).length;
   const g = await run('echo-env');
   assert.match(g.rewrite, /GRADING=1/);
-  assert.doesNotMatch(g.rewrite, new RegExp(`cwd=${process.cwd()} `));
+  const childCwd = g.rewrite.match(/^cwd=(\S+) /)[1];
+  assert.match(basename(childCwd), /^prompt-coach-/);
+  assert.equal(existsSync(childCwd), false);
   assert.match(g.rewrite, /fix the bug in auth\.ts/);
   assert.match(g.rewrite, /Done earlier\./);
-  assert.equal(readdirSync(tmpdir()).filter((n) => n.startsWith('prompt-coach-')).length, before);
 });
 
 test('args carry the lean flags, the model and the rubric', () => {

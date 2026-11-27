@@ -1,0 +1,14 @@
+{
+  "name": "prompt-coach",
+  "description": "Prompt Coach: feedback on every prompt you give Claude Code.",
+  "owner": {
+    "name": "xaib026 (Shoaib Hussain)"
+  },
+  "plugins": [
+    {
+      "name": "prompt-coach",
+      "source": "./",
+      "description": "Scores every prompt you give Claude Code and shows you how to improve it."
+    }
+  ]
+}
