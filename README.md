@@ -1,9 +1,10 @@
-# prompt-coach
+# prompt-coach: a Claude Code plugin that grades your prompts
 
 **Get better at prompting Claude Code, one prompt at a time.**
 
-prompt-coach is a Claude Code plugin. It quietly grades every prompt you give Claude Code,
-and Claude opens its next reply with that grade and the biggest gap to fix. Over time, `/prompt-report` shows your patterns: your weakest area,
+prompt-coach is a Claude Code plugin that grades every prompt you write and shows you how to
+improve it. It scores each prompt on clarity, context, specificity and done criteria, and Claude
+opens its next reply with that grade and the biggest gap to fix. Over time, `/prompt-report` shows your patterns: your weakest area,
 whether you're improving, and the gaps you keep repeating.
 
 > **Last prompt: 1.8/10** · Clarity 3 · Context 2 · Specificity 1 · Done criteria 1
@@ -28,8 +29,8 @@ your existing Claude Code login.
 1. **You send a prompt.** A hook starts grading in the background and returns right away
    (about 0.3 s), so Claude starts answering with no wait.
 2. **A separate grader scores it.** A lean `claude -p` call to Haiku checks your prompt
-   against a fixed rubric, using Claude's previous reply as context, so follow-ups like
-   "now do the same for auth" are judged fairly. It has no tools, no MCP servers and none
+   against a fixed rubric. It also gets the project folder's name and Claude's previous reply
+   as context, so "fix this repo's tests" or "now do the same for auth" are judged fairly. It has no tools, no MCP servers and none
    of your plugins. Scoring is 1–10 on:
    - **Clarity:** is it obvious what's being asked?
    - **Context:** does Claude have the files, background and constraints it needs?
@@ -95,6 +96,25 @@ Settings are environment variables:
 - that `node --version` works;
 - that `PROMPT_COACH` isn't set to `off`;
 - that your prompt was long enough to be graded.
+
+## FAQ
+
+**How do I write better prompts for Claude Code?**
+Say what you want, name the files or error text involved, and say what "done" looks like.
+prompt-coach checks those four things on every prompt and tells you which one you skipped.
+
+**Does it need an API key?**
+No. Grading uses your existing Claude Code login.
+
+**Does it slow Claude Code down?**
+No. The hook returns in about 0.3 s and grading runs in the background.
+
+**Does it send my prompts anywhere new?**
+No. Prompts go only to Claude, through your own login, and results stay in
+`~/.claude/prompt-coach/` on your machine.
+
+**Can I turn it off?**
+Set `PROMPT_COACH=off`, or uninstall with `/plugin uninstall prompt-coach@prompt-coach`.
 
 ## Development
 

@@ -8,7 +8,7 @@
     {
       "name": "prompt-coach",
       "source": "./",
-      "description": "Scores every prompt you give Claude Code and shows you how to improve it."
+      "description": "A Claude Code plugin that grades every prompt you write and shows you how to improve it."
     }
   ]
 }

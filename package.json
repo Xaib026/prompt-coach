@@ -1,7 +1,7 @@
 {
   "name": "prompt-coach",
   "version": "0.1.0",
-  "description": "Claude Code plugin that scores every prompt you write and shows you how to improve it.",
+  "description": "A Claude Code plugin that grades every prompt you write and shows you how to improve it.",
   "type": "module",
   "license": "MIT",
   "engines": { "node": ">=18" },
